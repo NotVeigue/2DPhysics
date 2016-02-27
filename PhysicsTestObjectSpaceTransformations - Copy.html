@@ -1,0 +1,163 @@
+<html>
+<head>
+<script type='text/javascript' src='2DPhysics.js'></script>
+<script>
+	window.addEventListener('load', init);
+
+	var width = 500;
+	var height = 500;
+	var canvas;
+	var ctx;
+
+	var test; 
+	var phys2D;
+
+	// TEST
+	var animate = true;
+	var size = 50;
+	var a = vec2();
+	a.angle = 0;
+	var b = vec2();
+	b.angle = 0;
+
+	function init()
+	{
+		test = vec2(100, 0);
+		phys2D = Physics2D(width, height);
+
+		console.log("Cats!");
+
+		canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+
+		canvas.addEventListener('click', function()
+		{
+			animate = !animate;
+		});
+
+		ctx = canvas.getContext('2d');
+
+		document.getElementById('body').appendChild(canvas);
+
+		setInterval(function()
+		{
+			update();
+			draw();
+		}, 1000/30);
+
+
+		// TEST
+		a.x = -150;
+		a.y = -100;
+		b.x = -120;
+		b.y = -200;
+	};
+
+	function update()
+	{
+		if(!animate)
+			return;
+
+		//test = test.rotate(Math.PI * 0.05);
+		a.angle += Math.PI * 0.03;
+		b.angle += Math.PI * 0.005;
+	};
+
+	function draw()
+	{
+		var hw = width >> 1;
+		var hh = height >> 1;
+		var hs = size >> 1;
+		ctx.fillStyle = "#FFFFFF";
+		ctx.fillRect(0,0,width,height);
+
+		// Draw A in world-space
+		ctx.fillStyle = "#FF0000";
+		ctx.save();
+		ctx.translate(hw + a.x, hh + a.y);
+		ctx.rotate(a.angle);
+		ctx.fillRect(-hs,-hs,size,size);
+		ctx.restore();
+
+		// Draw B in world-space
+		ctx.fillStyle = "#00FF00";
+		ctx.save();
+		ctx.translate(hw + b.x, hh + b.y);
+		ctx.rotate(b.angle);
+		ctx.fillRect(-hs,-hs,size,size);
+		ctx.restore();
+
+		// Draw A in A-space
+		ctx.fillStyle = "#FF0000";
+		ctx.save();
+		ctx.translate(hw, hh);
+		ctx.fillRect(-hs,-hs,size,size);
+		ctx.restore();
+
+		// Draw B in A-space
+		var ab = b.subtract(a).rotate(-a.angle);
+		ctx.fillStyle = "#00FF00";
+		ctx.save();
+		ctx.translate(hw + ab.x, hh + ab.y);
+		ctx.rotate(b.angle - a.angle);
+		ctx.fillRect(-hs,-hs,size,size);
+		ctx.restore();
+
+		// Draw axes
+
+		//A-world up
+		ctx.strokeStyle = "#0000FF";
+		var ra = vec2(0, -40).rotate(a.angle);
+		ctx.beginPath();
+		ctx.moveTo(hw + a.x, hh + a.y);
+		ctx.lineTo(hw + a.x + ra.x, hh + a.y + ra.y);
+		ctx.stroke();
+
+		//A-A up
+		ctx.beginPath();
+		ctx.moveTo(hw, hh);
+		ctx.lineTo(hw, hh + -40);
+		ctx.stroke();
+
+		//B-world up
+		var rb = vec2(0, -40).rotate(b.angle);
+		ctx.beginPath();
+		ctx.moveTo(hw + b.x, hh + b.y);
+		ctx.lineTo(hw + b.x + rb.x, hh + b.y + rb.y);
+		ctx.stroke();
+
+		//B-A up
+		var rba = rb.rotate(-a.angle);
+		ctx.beginPath();
+		ctx.moveTo(hw + ab.x, hh + ab.y);
+		ctx.lineTo(hw + ab.x + rba.x, hh + +ab.y + rba.y);
+		ctx.stroke();
+
+
+		ctx.fillStyle = "#0000FF";
+		ctx.beginPath();
+		ctx.arc(hw, hh, 5, 0, Math.PI << 1);
+		ctx.fill();
+		/*
+		var t = phys2D.toScreenCoords(test.add(vec2(width >> 1, height >> 1)));
+		console.log(t);
+
+		ctx.clearRect(0,0,width,height);
+		ctx.fillStyle = "#FF0000";
+		ctx.strokeStyle = "#FF0000";
+		ctx.beginPath();
+		ctx.moveTo(width >> 1, height >> 1);
+		ctx.lineTo(t.x, t.y);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.arc(t.x, t.y, 5, 0, Math.PI * 2);
+		ctx.fill();
+		*/
+	};
+
+</script>
+</head>
+<body id='body' style='background-color: black;'>
+</body>
+</html>
