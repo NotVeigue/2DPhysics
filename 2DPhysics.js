@@ -56,7 +56,6 @@ function Physics2D(ctx, w, h, scale, centerOffsetx, centerOffsety)
 					continue;
 
 				rigidbodies[i].velocity = rigidbodies[i].velocity.add(gravity);
-				console.log(rigidbodies[i].velocity);
 			}
 		}
 		return;
@@ -116,7 +115,6 @@ function Physics2D(ctx, w, h, scale, centerOffsetx, centerOffsety)
 				if(c != null)
 				{
 					collisions.push(c);
-					//console.log(c);
 				}
 			}
 		}
@@ -152,9 +150,20 @@ function Physics2D(ctx, w, h, scale, centerOffsetx, centerOffsety)
 		return (collisionMap[a] && collisionMap[a][b]) || (collisionMap[b] && collisionMap[b][a]);
 	};
 
+	function SortCollision(a, b)
+	{
+		var akinematic = a.a.isKinematic || a.b.isKinematic;
+		var bkinematic = b.a.isKinematic || b.b.isKinematic;
+		return akinematic && bkinematic ? 0 :
+			   akinematic				? -1 :
+			   							 1;
+	}
+
 	function ResolveCollisions(dt)
 	{
 		var gravity = o.forceOfGravity.multiply(o.useGravity ? dt * 2 : 0);
+
+		collisions.sort(SortCollision);
 
 		// Resolve each collision we detected using the assigned solver
 		for(var i = 0; i < collisions.length; i++)
@@ -183,9 +192,6 @@ function Physics2D(ctx, w, h, scale, centerOffsetx, centerOffsety)
 
 	o.update = function(dt)
 	{
-		//var err = new Error();
-		//console.log(err.stack);
-
 		// Apply Forces
 		ApplyForces(dt);
 
@@ -796,7 +802,7 @@ function BasicDiscreteSolver()
 			collision.normal = btoa.normalize();
 
 			// we will need to adjust this by the amount we move b when we separate the objects later.
-			collision.contactPoints = [a.transform.position.add(collision.normal.multiply(-a.collider.radius))];
+			collision.contactPoint = [a.transform.position.add(collision.normal.multiply(-a.collider.radius))];
 			return collision;
 		}
 
@@ -872,46 +878,21 @@ function BasicDiscreteSolver()
 
 			if(result.minX === null || v.x <= result.minX)
 			{
-				// if(result.minX && Math.abs(result.minX - v.x) < multiPointThreshold)
-				// 	console.log("Hit!!", result.minX, v.x);
-				// else
-				// 	console.log("Miss...", result.minX, v.x, result.minPX);
-				//console.log(result.minX - v.x);
-				//(result.minX && Math.abs(result.minX - v.x) < multiPointThreshold) ? result.minPX.push(v) : result.minPX = [v];
 				result.minPX = [v];
 				result.minX = v.x;
 			}
 			if(result.maxX === null || v.x >= result.maxX)
 			{
-				// if(result.maxX &&  Math.abs(v.x - result.maxX) < multiPointThreshold)
-				// 	console.log("Hit!", result.maxX, v.x);
-				// else
-				// 	console.log("Miss...", result.maxX, v.x, result.maxPX);
-
-				//console.log(v.x - result.maxX);
-				//(result.maxX &&  Math.abs(v.x - result.maxX) < multiPointThreshold) ? result.maxPX.push(v) : result.maxPX = [v];
 				result.maxPX = [v];
 				result.maxX = v.x;
 			}
 			if(result.minY === null || v.y <= result.minY)
 			{
-				// if(result.minY && Math.abs(result.minY - v.y) < multiPointThreshold)
-				// 	console.log("Hit!", result.minY, v.y);
-				// else
-				// 	console.log("Miss...", result.minY, v.y, result.minPY);
-				//console.log(result.minY - v.y);
-				//(result.minY && Math.abs(result.minY - v.y) < multiPointThreshold) ? result.minPY.push(v) : result.minPY = [v];
 				result.minPY = [v];
 				result.minY = v.y;
 			}
 			if(result.maxY === null || v.y >= result.maxY)
 			{
-				// if(result.maxY && Math.abs(v.y - result.maxY) < multiPointThreshold)
-				// 	console.log("Hit!", result.maxY, v.y);
-				// else
-				// 	console.log("Miss...", result.maxY, v.y, result.maxPY);
-				//console.log(v.y - result.maxY);
-				//(result.maxY && Math.abs(v.y - result.maxY) < multiPointThreshold) ? result.maxPY.push(v) : result.maxPY = [v];
 				result.maxPY = [v];
 				result.maxY = v.y;
 			}
@@ -1259,7 +1240,6 @@ function BasicDiscreteSolver()
 
 	o.resolveCollision = function(collision, gravity)
 	{
-		console.log("Resolving Collisions!");
 		if(collision.type === CollisionType.AABB)
 			o.resolveCollisionWithoutTorque(collision, gravity)
 		else
@@ -1281,54 +1261,41 @@ function BasicDiscreteSolver()
 		var ares = 0;
 		var bres = 0;
 
-		if(aveln > 0 && bveln > 0 && !a.isKinematic && !b.isKinematic)
-		{
-			//console.log("This ONe!");
-			//console.log(aveln);
-			//console.log(bveln);
-			//console.log(d);
-			var tveln = aveln + bveln;
-			//console.log(tveln);
-			ares = (aveln/tveln) * d;
-			bres = (bveln/tveln) * d;
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(ares));
-			a.transform.translate(n.multiply(ares));
-			b.transform.translate(n.multiply(-bres));
-			//console.log(ares);
-			//console.log(bres);
-		}
-		else if(aveln > 0 || b.isKinematic)
-		{
-			ares = d;
-			a.transform.translate(n.multiply(ares));
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(ares));
-		}
-		else if(bveln > 0 || a.isKinematic)
-		{
-			bres = -d;
-			b.transform.translate(n.multiply(bres));
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(bres));
-		}
-		else
-		{
-			ares = d * 0.5;
-			bres = -ares;
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(ares));
-			a.transform.translate(n.multiply(ares));
-			b.transform.translate(n.multiply(bres));
-		}
+		// if(aveln > 0 && bveln > 0 && !a.isKinematic && !b.isKinematic)
+		// {
+		// 	var tveln = aveln + bveln;
+		// 	ares = (aveln/tveln) * d;
+		// 	bres = (bveln/tveln) * d;
+		// 	a.transform.translate(n.multiply(ares));
+		// 	b.transform.translate(n.multiply(-bres));
+		// }
+		// else if(aveln > 0 || b.isKinematic)
+		// {
+		// 	ares = d;
+		// 	a.transform.translate(n.multiply(ares));
+		// }
+		// else if(bveln > 0 || a.isKinematic)
+		// {
+		// 	bres = -d;
+		// 	b.transform.translate(n.multiply(bres));
+		// }
+		// else
+		// {
+		// 	ares = d * 0.5;
+		// 	bres = -ares;
+		// 	a.transform.translate(n.multiply(ares));
+		// 	b.transform.translate(n.multiply(bres));
+		// }
 
 		var length = collision.contactPoint.length;
 		for(var i = 0; i < length; i++)
 		{
 			var contactPoint = collision.contactPoint[i];
-			window.contactPoint = contactPoint;
 
 			var ra = contactPoint.subtract(collision.a.transform.position);
 			var rb = contactPoint.subtract(collision.b.transform.position);
 			
 			// Apply restitution impulse
-			//var relativeVelocity = a.velocity.subtract(b.velocity);
 			var relativeVelocity = a.velocity.add(crossSV(a.angularVelocity, ra)).subtract(b.velocity).subtract(crossSV(b.angularVelocity, rb));
 			var contactVelocity = relativeVelocity.dot(n);
 
@@ -1342,7 +1309,6 @@ function BasicDiscreteSolver()
 							 a.invMass + raCrossN + b.invMass + rbCrossN;
 
 			var e = relativeVelocity.sqrmag() <= gravity.sqrmag() + 1 ? 0 : 1 + Math.min(a.material.elasticity, b.material.elasticity);
-			console.log(e, relativeVelocity.sqrmag(), gravity.sqrmag());
 			var I = -(1 * contactVelocity)/invMassSum;
 			I /= length;
 			var impulse = n.multiply(I);
@@ -1354,28 +1320,18 @@ function BasicDiscreteSolver()
 			var staticFriction = Math.min(a.material.staticFriction, b.material.staticFriction);
 			var dynamicFriction = Math.min(a.material.dynamicFriction, b.material.dynamicFriction);
 
-			//relativeVelocity = a.velocity.subtract(b.velocity);
 			relativeVelocity = a.velocity.add(crossSV(a.angularVelocity, ra)).subtract(b.velocity).subtract(crossSV(b.angularVelocity, rb));
-			//console.log(relativeVelocity);
-			//console.log("------------------------------------------------------");
-			//return;
+
 			var z =  relativeVelocity.subtract(n.multiply(relativeVelocity.dot(n)));
 			var t = relativeVelocity.subtract(n.multiply(relativeVelocity.dot(n))).normalize();
 			var IT = -relativeVelocity.dot(t)/invMassSum;
 			IT /= length;
-			//console.log(IT, a.angularVelocity, I, staticFriction, a.velocity, t.multiply(IT * a.invMass));
-			//if(Math.abs(IT) <= 0.0001)
-				//return;
 
 			var tangentImpulse = Math.abs(IT) < I * staticFriction ? tangentImpulse = t.multiply(IT) : 
 																 tangentImpulse = t.multiply(-I * dynamicFriction);
-
-			//console.log(z, relativeVelocity, t, IT);
-			//console.log("---------------------------------");
 			a.applyImpule(tangentImpulse, ra);
 			b.applyImpule(tangentImpulse.multiply(-1), rb);
 		}
-		//console.log(tangentImpulse, ra, ra.cross(tangentImpulse), "Cats");
 	};
 
 	o.resolveCollisionWithoutTorque = function(collision, gravity)
@@ -1393,45 +1349,33 @@ function BasicDiscreteSolver()
 		var ares = 0;
 		var bres = 0;
 
-		if(aveln > 0 && bveln > 0 && !a.isKinematic && !b.isKinematic)
-		{
-			//console.log("This ONe!");
-			//console.log(aveln);
-			//console.log(bveln);
-			//console.log(d);
-			var tveln = aveln + bveln;
-			//console.log(tveln);
-			ares = (aveln/tveln) * d;
-			bres = (bveln/tveln) * d;
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(ares));
-			a.transform.translate(n.multiply(ares));
-			b.transform.translate(n.multiply(-bres));
-			//console.log(ares);
-			//console.log(bres);
-		}
-		else if(aveln > 0 || b.isKinematic)
-		{
-			ares = d;
-			a.transform.translate(n.multiply(ares));
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(ares));
-		}
-		else if(bveln > 0 || a.isKinematic)
-		{
-			bres = -d;
-			b.transform.translate(n.multiply(bres));
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(bres));
-		}
-		else
-		{
-			ares = d * 0.5;
-			bres = -ares;
-			//collision.contactPoint = collision.contactPoint.add(n.multiply(ares));
-			a.transform.translate(n.multiply(ares));
-			b.transform.translate(n.multiply(bres));
-		}
+		// if(aveln > 0 && bveln > 0 && !a.isKinematic && !b.isKinematic)
+		// {
+		// 	var tveln = aveln + bveln;
+		// 	ares = (aveln/tveln) * d;
+		// 	bres = (bveln/tveln) * d;
+		// 	a.transform.translate(n.multiply(ares));
+		// 	b.transform.translate(n.multiply(-bres));
+		// }
+		// else if(aveln > 0 || b.isKinematic)
+		// {
+		// 	ares = d;
+		// 	a.transform.translate(n.multiply(ares));
+		// }
+		// else if(bveln > 0 || a.isKinematic)
+		// {
+		// 	bres = -d;
+		// 	b.transform.translate(n.multiply(bres));
+		// }
+		// else
+		// {
+		// 	ares = d * 0.5;
+		// 	bres = -ares;
+		// 	a.transform.translate(n.multiply(ares));
+		// 	b.transform.translate(n.multiply(bres));
+		// }
 		
 		// Apply restitution impulse
-		//var relativeVelocity = a.velocity.subtract(b.velocity);
 		var relativeVelocity = a.velocity.subtract(b.velocity);
 		var contactVelocity = relativeVelocity.dot(n);
 
@@ -1455,35 +1399,24 @@ function BasicDiscreteSolver()
 		var staticFriction = Math.min(a.material.staticFriction, b.material.staticFriction);
 		var dynamicFriction = Math.min(a.material.dynamicFriction, b.material.dynamicFriction);
 
-		//relativeVelocity = a.velocity.subtract(b.velocity);
 		var relativeVelocity = a.velocity.subtract(b.velocity);
-		//console.log(relativeVelocity);
-		//console.log("------------------------------------------------------");
-		//return;
+
 		var z =  relativeVelocity.subtract(n.multiply(relativeVelocity.dot(n)));
 		var t = relativeVelocity.subtract(n.multiply(relativeVelocity.dot(n))).normalize();
 		var IT = -relativeVelocity.dot(t)/invMassSum;
-		//console.log(IT, a.angularVelocity, I, staticFriction, a.velocity, t.multiply(IT * a.invMass));
-		//if(Math.abs(IT) <= 0.0001)
-			//return;
 
 		var tangentImpulse = Math.abs(IT) < I * staticFriction ? tangentImpulse = t.multiply(IT) : 
 																 tangentImpulse = t.multiply(-I * dynamicFriction);
-
-		//console.log(z, relativeVelocity, t, IT);
-		//console.log("---------------------------------");
 		a.applyImpule(tangentImpulse);
 		b.applyImpule(tangentImpulse.multiply(-1));
 	};
 
 	o.correctPosition = function(collision)
 	{
-		return;
-
 		var a = collision.a;
 		var b = collision.b;
-		var slop = 0.05;
-		var percent = 0.4;
+		var slop = 0.001;
+		var percent = 0.1;
 		var massSum =  a.isKinematic ? b.invMass :
 					   b.isKinematic ? a.invMass :
 					   a.invMass + b.invMass;
@@ -1495,89 +1428,6 @@ function BasicDiscreteSolver()
 		if(!b.isKinematic)
 			b.transform.translate(correction.multiply(-1));
 	}
-
-	// o.resolveCollision = function(collision)
-	// {
-	// 	var a = collision.a;
-	// 	var b = collision.b;
-	// 	var n = collision.normal;
-	// 	var d = collision.penetration;
-		
-	// 	// -----------------------------------------------------
-	// 	// Move the objects out of collision with each other
-	// 	// -----------------------------------------------------
-	// 	var aveln = Math.abs(a.velocity.dot(n));
-	// 	var bveln = Math.abs(b.velocity.dot(n));
-	// 	var ares = 0;
-	// 	var bres = 0;
-
-	// 	if(aveln > 0 && bveln > 0 && !a.isKinematic && !b.isKinematic)
-	// 	{
-	// 		//console.log("This ONe!");
-	// 		//console.log(aveln);
-	// 		//console.log(bveln);
-	// 		//console.log(d);
-	// 		var tveln = aveln + bveln;
-	// 		//console.log(tveln);
-	// 		ares = (aveln/tveln) * d;
-	// 		bres = (bveln/tveln) * d;
-	// 		a.transform.translate(n.multiply(ares));
-	// 		b.transform.translate(n.multiply(-bres));
-	// 		//console.log(ares);
-	// 		//console.log(bres);
-	// 	}
-	// 	else if(aveln > 0 || b.isKinematic)
-	// 	{
-	// 		ares = d;
-	// 		a.transform.translate(n.multiply(ares));
-	// 	}
-	// 	else if(bveln > 0 || a.isKinematic)
-	// 	{
-	// 		bres = -d;
-	// 		b.transform.translate(n.multiply(bres));
-	// 	}
-	// 	else
-	// 	{
-	// 		ares = d * 0.5;
-	// 		bres = -ares;
-	// 		a.transform.translate(n.multiply(ares));
-	// 		b.transform.translate(n.multiply(bres));
-	// 	}
-		
-	// 	// -----------------------------------------------------
-	// 	// Appyly friction forces
-	// 	// -----------------------------------------------------
-
-
-	// 	// Changes to make:
-	// 	// ------------------------------------------------------
-	// 	// - Calculate torque along with I.
-	// 	// - This can probably be done in a way similar to I? Add together the torques at the specified points then project it onto n, then divide by the combined moment of inertia?
-	// 	// - 
-	// 	// -----------------------------------------------------
-	// 	// Apply appropriate repulsion forces to each object
-	// 	// -----------------------------------------------------
-	// 	var rvel = a.velocity.subtract(b.velocity);
-
-	// 	//var e = (a.material.elasticity + b.material.elasticity) * 0.5;
-	// 	var e = 1 + Math.min(a.material.elasticity, b.material.elasticity);
-	// 	var I = rvel.projectOnto(n);
-
-	// 	var totalMass = a.isKinematic ? b.invMass :
-	// 					b.isKinematic ? a.invMass :
-	// 					a.invMass + b.invMass;
-
-	// 	I = I.divide(totalMass);
-	// 	a.velocity = a.isKinematic ? vec2() : a.velocity.add(I.multiply(e * -a.invMass));
-	// 	b.velocity = b.isKinematic ? vec2() : b.velocity.add(I.multiply(e * b.invMass));
-
-	// 	/*
-	// 	console.log(a.collider.type);
-	// 	console.log(b.collider.type);
-	// 	console.log(a.velocity);
-	// 	console.log(b.velocity);
-	// 	*/
-	// };
 
 	return o;
 };

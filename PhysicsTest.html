@@ -1,12 +1,15 @@
 <html>
 <head>
 <script type='text/javascript' src='2DPhysics.js'></script>
+<script src='jquery-1.11.3.min.js' type='text/javascript'></script>
 <script>
 	window.addEventListener('load', init);
 
 	var width = 500;
 	var height = 500;
+	var center = {x: width/2, y: height/2};
 	var canvas;
+	var $canvas;
 	var ctx;
 
 	var test; 
@@ -19,18 +22,20 @@
 	var ball2 = GameObject();
 	var ball3 = GameObject();
 	var walls = [];
+	var bodies = [];
+	var bigCircle = GameObject();
 
+	var maxBodies = 10;
 	var sf = 0.5;
 	var df = 0.3;
 	var e = 0.2;
 
 	function init()
 	{
-		console.log("Cats!");
-
 		canvas = document.createElement('canvas');
 		canvas.width = width;
 		canvas.height = height;
+		$canvas = $(canvas);
 
 		ctx = canvas.getContext('2d');
 		phys2D = Physics2D();
@@ -48,55 +53,49 @@
 		}, 1000/30);
 
 		// TEST
-		canvas.addEventListener('click', function()
+		canvas.addEventListener('click', function(e)
 		{
-			animate = !animate;
+			//animate = !animate;
+			var offset = $canvas.offset();
+			var p = vec2(e.pageX - offset.left, e.pageY - offset.top);
+			var pos = p.subtract(center);
+			pos.y = -pos.y;
+
+			var body = GameObject();
+			body.rigidbody.setCollider(Math.random() > .5 ? CircleCollider(15) : OBBCollider(30, 30));
+			body.transform.translate(pos);
+			body.rigidbody.material.elasticity = e;
+			body.rigidbody.material.staticFriction = sf;
+			body.rigidbody.material.dynamicFriction = df;
+			body.rigidbody.mass = 5;
+
+			phys2D.addRigidbody(body.rigidbody);
+			bodies.push(body);
 		});
 
 		window.addEventListener('keydown', function(e)
 		{
-			if(animate)
-				return;
+			if(e.keyCode == 80) // P
+			{
+				animate = !animate;
+			}
+			else if(e.keyCode == 70) // F
+			{
+				if(animate)
+					return;
 
-			update();
-			draw();
+				update();
+				draw();
+			}
 		});
 
-		ball.rigidbody.setCollider(CircleCollider(15));
-		ball.transform.translate(vec2(100, -200));
-		//ball.rigidbody.velocity = vec2(0, 250);
-		//ball.rigidbody.applyForce(vec2(0, 370), true);
-		ball.rigidbody.velocity = vec2(-350, 0);
-		ball.rigidbody.material.elasticity = e;
-		ball.rigidbody.material.staticFriction = sf;
-		ball.rigidbody.material.dynamicFriction = df;
-		ball.rigidbody.mass = 5;
-		//ball.rigidbody.mass = 10;
-		console.log(ball.rigidbody.id);
-		console.log(g_rbId);
+		bigCircle.rigidbody.setCollider(CircleCollider(70));
+		bigCircle.rigidbody.isKinematic = true;
+		bigCircle.rigidbody.material.elasticity = e;
+		bigCircle.rigidbody.material.staticFriction = sf;
+		bigCircle.rigidbody.material.dynamicFriction = df;
+		phys2D.addRigidbody(bigCircle.rigidbody);
 
-		ball2.rigidbody.setCollider(AABBCollider(30, 30));
-		ball2.rigidbody.velocity = vec2(250, 0);
-		ball2.transform.translate(vec2(-100, 0));
-		ball2.rigidbody.material.elasticity = e;
-		ball2.rigidbody.material.staticFriction = sf;
-		ball2.rigidbody.material.dynamicFriction = df;
-		ball2.rigidbody.mass = 3;
-
-		ball3.rigidbody.setCollider(OBBCollider(30,30));
-		ball3.rigidbody.velocity = vec2(-50, 250);
-		ball3.transform.translate(vec2(0, 100));
-		ball3.rigidbody.material.elasticity = .3;
-		ball3.rigidbody.material.staticFriction = 0.2;
-		ball3.rigidbody.material.dynamicFriction = 0.1;
-		ball3.rigidbody.mass = 3.1;
-		//ball3.transform.rotate(Math.PI * 0.15);
-
-		phys2D.addRigidbody(ball.rigidbody);
-		//phys2D.addRigidbody(ball2.rigidbody);
-		//phys2D.addRigidbody(ball3.rigidbody);
-		//phys2D.addUniversalForce("gravity", vec2(0, -300.0), true);
-		//phys2D.addUniversalForce("wind", vec2(200, 0), false);
 
 		walls[0] = GameObject();
 		walls[0].rigidbody.setCollider(AABBCollider());
@@ -136,42 +135,11 @@
 			phys2D.addRigidbody(walls[i].rigidbody);
 		}
 
-		/*
-		var numToTest = 1000000;
-		var iterations = 1000;
-		var start, now;
-		var bt = 0;
-		var dt = 0;
-
-		for(var j = 0; j < iterations; ++j)
-		{
-			start = (new Date()).getTime();
-			for(var i = 0; i < numToTest; ++i)
-			{
-				var d = (i | 0) >> 1;
-			}
-			now = (new Date()).getTime();
-			bt += now - start;
-
-			start = (new Date()).getTime();
-			for(var i = 0; i < numToTest; ++i)
-			{
-				var d = (i | 0) / (i | 0);
-			}
-			now = (new Date()).getTime();
-			dt += now - start;
-		}
-
-		console.log("Results: ");
-		console.log("m: " + (bt * 0.001) + " seconds.");
-		console.log("d: " + (dt * 0.001) + " seconds.");
-		*/
 	};
 
 	function update()
 	{
 		phys2D.update(1/30);
-		//ball.update(1/30);
 	};
 
 	function draw()
@@ -179,22 +147,17 @@
 		ctx.fillStyle = "#000000";
 		ctx.fillRect(0, 0, width, height);
 
-		ball.render(camera);
-		ball2.render(camera);
-		ball3.render(camera);
-		for(var i = 0; i < walls.length; ++i)
+		bigCircle.render(camera);
+
+		for(var i = 0; i < bodies.length; i++)
+		{
+			bodies[i].render(camera);
+		}
+
+		for(var i = 0; i < walls.length; i++)
 		{
 			walls[i].render(camera);
 		}
-
-		if(!window.contactPoint)
-			return;
-
-		// ctx.fillStyle = "#FF0000";
-		// ctx.beginPath();
-		// window.contactPoint = camera.worldToScreen(window.contactPoint);
-		// ctx.arc(window.contactPoint.x, window.contactPoint.y, 3, 0, Math.PI * 2);
-		// ctx.fill();
 	};
 
 </script>
